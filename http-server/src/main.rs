@@ -1,6 +1,6 @@
 mod routing;
 
-use actix_web::{App, middleware, HttpServer, web};
+use actix_web::{App, middleware, HttpServer};
 use crate::routing::index;
 
 #[actix_web::main]
@@ -16,4 +16,5 @@ async fn main() -> std::io::Result<()> {
         .bind(("localhost", 5000))?
         .run()
         .await
+
 }
