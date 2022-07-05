@@ -34,7 +34,7 @@ async fn consume_and_print(brokers: &str, group_id: &str, topics: &[&str]) {
         .set("bootstrap.servers", brokers)
         .set("enable.partition.eof", "false")
         .set("session.timeout.ms", "6000")
-        .set("enable.auto.commit", "true")
+        .set("enable.auto.commit", "false")
         //.set("statistics.interval.ms", "30000")
         //.set("auto.offset.reset", "smallest")
         .set_log_level(RDKafkaLogLevel::Debug)
@@ -48,8 +48,8 @@ async fn consume_and_print(brokers: &str, group_id: &str, topics: &[&str]) {
     loop {
         match consumer.recv().await {
             Err(e) => println!("Kafka error: {}", e),
-            Ok(m) => {
-                let payload = match m.payload_view::<str>() {
+            Ok(message) => {
+                let payload = match message.payload_view::<str>() {
                     None => "",
                     Some(Ok(s)) => s,
                     Some(Err(e)) => {
@@ -58,13 +58,8 @@ async fn consume_and_print(brokers: &str, group_id: &str, topics: &[&str]) {
                     }
                 };
                 println!("key: '{:?}', payload: '{}', topic: {}, partition: {}, offset: {}, timestamp: {:?}",
-                      m.key(), payload, m.topic(), m.partition(), m.offset(), m.timestamp());
-                // if let Some(headers) = m.headers() {
-                    // for header in headers.iter() {
-                    //     println!("  Header {:#?}: {:?}", header.key, header.value);
-                    // }
-                // }
-                consumer.commit_message(&m, CommitMode::Async).unwrap();
+                         message.key(), payload, message.topic(), message.partition(), message.offset(), message.timestamp());
+                consumer.commit_message(&message, CommitMode::Async).unwrap();
             }
         };
     }
@@ -86,21 +81,12 @@ async fn main() {
                 .long("group-id")
                 .takes_value(true)
                 .default_value("test")
-        ).arg(
-        Arg::with_name("topics")
-            .short("t")
-            .long("topics")
-            .help("Topic list")
-            .takes_value(true)
-            .multiple(true)
-            .default_value("quickstart")
-            .required(true)
         )
         .get_matches();
 
     let (version_n, version_s) = get_rdkafka_version();
     println!("rd_kafka_version: 0x{:08x}, {}", version_n, version_s);
-    let topics = matches.values_of("topics").unwrap().collect::<Vec<&str>>();
+    let topics = option_env!("TOPIC").unwrap_or("").split(',').collect::<Vec<&str>>();
     let brokers = matches.value_of("brokers").unwrap();
     let group_id = matches.value_of("group-id").unwrap();
 
