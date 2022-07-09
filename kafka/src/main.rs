@@ -35,8 +35,8 @@ async fn consume_and_print(brokers: &str, group_id: &str, topics: &[&str]) {
         .set("enable.partition.eof", "false")
         .set("session.timeout.ms", "6000")
         .set("enable.auto.commit", "false")
-        //.set("statistics.interval.ms", "30000")
-        //.set("auto.offset.reset", "smallest")
+        .set("statistics.interval.ms", "30000")
+        .set("auto.offset.reset", "smallest")
         .set_log_level(RDKafkaLogLevel::Debug)
         .create_with_context(context)
         .expect("Consumer creation failed");
@@ -82,11 +82,18 @@ async fn main() {
                 .takes_value(true)
                 .default_value("test")
         )
+        .arg(
+            Arg::with_name("topics")
+                .short("t")
+                .long("topics")
+                .takes_value(true)
+                .default_value("topic_test")
+        )
         .get_matches();
 
     let (version_n, version_s) = get_rdkafka_version();
     println!("rd_kafka_version: 0x{:08x}, {}", version_n, version_s);
-    let topics = option_env!("TOPIC").unwrap_or("").split(',').collect::<Vec<&str>>();
+    let topics = matches.values_of("topics").unwrap().collect::<Vec<&str>>();
     let brokers = matches.value_of("brokers").unwrap();
     let group_id = matches.value_of("group-id").unwrap();
 
